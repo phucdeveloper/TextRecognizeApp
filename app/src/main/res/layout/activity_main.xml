@@ -6,9 +6,10 @@
     tools:context=".activity.TextRecognizeActivity">
 
     <ImageView
+        android:adjustViewBounds="true"
         android:background="@color/colorAccent"
         android:id="@+id/imageview_image"
-        android:layout_height="600dp"
+        android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:layout_width="match_parent" />
 

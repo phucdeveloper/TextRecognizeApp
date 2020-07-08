@@ -12,10 +12,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.philipstudio.thuctaptotnghiep1.model.VisionImage;
+//import com.philipstudio.thuctaptotnghiep1.model.VisionImage;
 import com.philipstudio.thuctaptotnghiep1.util.Constant;
 import com.philipstudio.thuctaptotnghiep1.R;
+import com.skyhope.textrecognizerlibrary.TextScanner;
+import com.skyhope.textrecognizerlibrary.callback.TextExtractCallback;
+
+import java.util.List;
 
 
 public class TextRecognizeActivity extends AppCompatActivity {
@@ -24,7 +29,7 @@ public class TextRecognizeActivity extends AppCompatActivity {
     Button btnTakePhoto, btnSelectPhoto;
     TextView txtDisplay;
 
-    VisionImage visionImage;
+   // VisionImage visionImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +50,7 @@ public class TextRecognizeActivity extends AppCompatActivity {
         txtDisplay = findViewById(R.id.textview_display);
         btnTakePhoto = findViewById(R.id.button_take_photo);
 
-        visionImage = new VisionImage();
+    //    visionImage = new VisionImage();
     }
 
     private View.OnClickListener listener = new View.OnClickListener() {
@@ -87,13 +92,38 @@ public class TextRecognizeActivity extends AppCompatActivity {
                 if (bundle != null) {
                     Bitmap bitmap = (Bitmap) bundle.get("data");
                     imgImage.setImageBitmap(bitmap);
-                    visionImage.detectTextFromImage(txtDisplay, bitmap, TextRecognizeActivity.this);
+            //        visionImage.detectTextFromImage(txtDisplay, bitmap, TextRecognizeActivity.this);
                 }
             } else if (requestCode == Constant.REQUEST_SELECT_PHOTO && data != null) {
                 Uri uri = data.getData();
                 imgImage.setImageURI(uri);
-                visionImage.detectTextFromImage(txtDisplay, uri, TextRecognizeActivity.this);
+                detectTextInImage(uri, txtDisplay);
             }
         }
+    }
+
+    private void detectTextInImage(Uri uri, final TextView textView){
+        TextScanner.getInstance(TextRecognizeActivity.this)
+                .init()
+                .load(uri)
+                .getCallback(new TextExtractCallback() {
+                    @Override
+                    public void onGetExtractText(List<String> list) {
+                        final StringBuilder builder = new StringBuilder();
+                        for (String str : list){
+                            builder.append(str).append("\n");
+                        }
+
+                        Toast.makeText(TextRecognizeActivity.this, builder.toString(), Toast.LENGTH_LONG).show();
+                        textView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                textView.setText(builder.toString());
+
+                            }
+                        });
+                    }
+                });
+
     }
 }
