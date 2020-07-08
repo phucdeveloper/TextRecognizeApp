@@ -1,25 +1,35 @@
 package com.philipstudio.thuctaptotnghiep1.activity;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-//import com.philipstudio.thuctaptotnghiep1.model.VisionImage;
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.MultiplePermissionsReport;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
+import com.philipstudio.thuctaptotnghiep1.manager.OCRManager;
 import com.philipstudio.thuctaptotnghiep1.util.Constant;
 import com.philipstudio.thuctaptotnghiep1.R;
-import com.skyhope.textrecognizerlibrary.TextScanner;
-import com.skyhope.textrecognizerlibrary.callback.TextExtractCallback;
 
+import java.io.IOException;
 import java.util.List;
 
 
@@ -29,8 +39,7 @@ public class TextRecognizeActivity extends AppCompatActivity {
     Button btnTakePhoto, btnSelectPhoto;
     TextView txtDisplay;
 
-   // VisionImage visionImage;
-
+    OCRManager ocrManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,7 +59,8 @@ public class TextRecognizeActivity extends AppCompatActivity {
         txtDisplay = findViewById(R.id.textview_display);
         btnTakePhoto = findViewById(R.id.button_take_photo);
 
-    //    visionImage = new VisionImage();
+        ocrManager = new OCRManager();
+        ocrManager.initApi();
     }
 
     private View.OnClickListener listener = new View.OnClickListener() {
@@ -60,7 +70,23 @@ public class TextRecognizeActivity extends AppCompatActivity {
                 case R.id.button_take_photo:
                     dispatchTakePictureIntent();
                 case R.id.button_select_photo:
-                    openGallery();
+                    Dexter.withContext(getApplicationContext())
+                            .withPermissions(
+                                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                                    Manifest.permission.INTERNET
+                            ).withListener(new MultiplePermissionsListener() {
+                        @Override
+                        public void onPermissionsChecked(MultiplePermissionsReport multiplePermissionsReport) {
+                            if (multiplePermissionsReport.areAllPermissionsGranted()){
+                                openGallery();
+                            }
+                        }
+
+                        @Override
+                        public void onPermissionRationaleShouldBeShown(List<PermissionRequest> list, PermissionToken permissionToken) {
+                        }
+                    }).check();
             }
         }
     };
@@ -92,38 +118,24 @@ public class TextRecognizeActivity extends AppCompatActivity {
                 if (bundle != null) {
                     Bitmap bitmap = (Bitmap) bundle.get("data");
                     imgImage.setImageBitmap(bitmap);
-            //        visionImage.detectTextFromImage(txtDisplay, bitmap, TextRecognizeActivity.this);
                 }
             } else if (requestCode == Constant.REQUEST_SELECT_PHOTO && data != null) {
                 Uri uri = data.getData();
+                Bitmap bitmapImage = getBitmapFromUri(uri);
                 imgImage.setImageURI(uri);
-                detectTextInImage(uri, txtDisplay);
+          //      ocrManager.startRecognize(bitmapImage);
             }
         }
     }
 
-    private void detectTextInImage(Uri uri, final TextView textView){
-        TextScanner.getInstance(TextRecognizeActivity.this)
-                .init()
-                .load(uri)
-                .getCallback(new TextExtractCallback() {
-                    @Override
-                    public void onGetExtractText(List<String> list) {
-                        final StringBuilder builder = new StringBuilder();
-                        for (String str : list){
-                            builder.append(str).append("\n");
-                        }
+    private Bitmap getBitmapFromUri(Uri uri){
+        Bitmap bitmap = null;
+        try {
+            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-                        Toast.makeText(TextRecognizeActivity.this, builder.toString(), Toast.LENGTH_LONG).show();
-                        textView.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                textView.setText(builder.toString());
-
-                            }
-                        });
-                    }
-                });
-
+        return bitmap;
     }
 }
